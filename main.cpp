@@ -11,7 +11,6 @@
 #include "memory_system.h"
 #include "configuration.h"
 
-#define DEBUG
 #ifdef DEBUG
 #define pr_dbg(fmt, ...)                        \
     do { printf(fmt, ##__VA_ARGS__); fflush(NULL); } while (0)
@@ -56,7 +55,7 @@ const char *gups_update_status_to_string(gups_update_status_t st)
     case WRITE_ISSUED: return "write issued";
     case WRITE_DONE:   return "write done";
     default:           return "unknown";
-    }        
+    }
 }
 
 
@@ -78,6 +77,7 @@ static uint64_t gups_make_random_address()
 {
     const Config *cfg = memsys->GetConfig();
     while (true) {
+        // generate a random address on channel 0
         uint64_t addr = dist(gen);
         uint64_t mask = (1<<(cfg->ch_pos+cfg->shift_bits))-1;
         uint64_t addr_lo = addr &  mask;
@@ -90,7 +90,7 @@ static uint64_t gups_make_random_address()
         auto it = gups_addr_to_update.find(addr);
         if (it == gups_addr_to_update.end()) {
             Address cfg_addr = cfg->AddressMapping(addr);
-            pr_dbg("addr  = %08" PRIx64 ": ch = %d\n", addr, cfg_addr.channel);            
+            pr_dbg("addr  = %08" PRIx64 ": ch = %d\n", addr, cfg_addr.channel);
             return addr;
         }
     }
@@ -98,17 +98,17 @@ static uint64_t gups_make_random_address()
 
 static void gups_setup_updates()
 {
-    
+
     for (int i = 0; i < N_UPDATES; i++) {
         // generate a random address for channel 0
-    
+
         uint64_t addr = gups_make_random_address();
 
         // create an update struct
         gups_update_t update;
         update.address = addr;
         update.status = READ_READY;
-        
+
         gups_updates.push_back(update);
         gups_addr_to_update[addr] = i;
         read_ready.push_back(i);
@@ -140,7 +140,7 @@ static int gups_try_send_requests()
         if (update->status != WRITE_READY) {
             pr_dbg("write issue error: %d\n", idx);
         }
-        
+
         if (!memsys->WillAcceptTransaction(update->address, true))
             break;
 
@@ -154,10 +154,11 @@ static int gups_try_send_requests()
     while (!read_ready.empty()) {
         int idx = read_ready.front();
         gups_update_t *update = &gups_updates[idx];
+
         if (update->status != READ_READY) {
             pr_dbg("read issue error: %d\n", idx);
         }
-        
+
         if (!memsys->WillAcceptTransaction(update->address, false))
             break;
 
@@ -176,7 +177,7 @@ static int gups_try_send_requests()
 /////////////////////////////////
 // DRAMSim3 callback functions //
 /////////////////////////////////
-static void gups_read_done(uint64_t addr)    
+static void gups_read_done(uint64_t addr)
 {
     pr_dbg("read complete: %010" PRIx64 "\n", addr);
     int idx = gups_addr_to_update[addr];
@@ -186,7 +187,7 @@ static void gups_read_done(uint64_t addr)
 
 static void gups_write_done(uint64_t addr)
 {
-    pr_dbg("write complete: %010" PRIx64 "\n", addr);    
+    pr_dbg("write complete: %010" PRIx64 "\n", addr);
     int idx = gups_addr_to_update[addr];
     gups_updates[idx].status = WRITE_DONE;
 }
