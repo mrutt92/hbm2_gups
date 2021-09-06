@@ -27,7 +27,7 @@
     __stringify(x)
 
 using namespace std;
-string config_path = stringify(BASEJUMP_STL_DIR) "/imports/DRAMSim3/configs/HBM2_8Gb_x128.ini";
+string config_path = stringify(BASEJUMP_STL_DIR) "/imports/DRAMSim3/configs/HBM2_8Gb_x128_ps.ini";
 
 using dramsim3::MemorySystem;
 using dramsim3::Config;
