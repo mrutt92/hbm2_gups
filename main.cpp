@@ -27,7 +27,7 @@
     __stringify(x)
 
 using namespace std;
-string config_path = stringify(BASEJUMP_STL_DIR) "/imports/DRAMSim3/configs/HBM2_8Gb_x128_ps.ini";
+string config_path = stringify(BASEJUMP_STL_DIR) "/imports/DRAMSim3/configs/DDR4_8Gb_x8_2666_2.ini";
 
 using dramsim3::MemorySystem;
 using dramsim3::Config;
@@ -77,14 +77,11 @@ static uint64_t gups_make_random_address()
 {
     const Config *cfg = memsys->GetConfig();
     while (true) {
-        // generate a random address on channel 0
+        // generate a random address on channel 0, rank 0
         uint64_t addr = dist(gen);
-        uint64_t mask = (1<<(cfg->ch_pos+cfg->shift_bits))-1;
-        uint64_t addr_lo = addr &  mask;
-        uint64_t addr_hi = addr & ~mask;
-
-        // shift addr_hi by ch_bits (3 for 8 channels)
-        addr = (addr_hi << 3) | (addr_lo);
+        // clear rank and channel
+        uint64_t mask = ((cfg->ra_mask << cfg->ra_pos)|(cfg->ch_mask << cfg->ch_pos)) << cfg->shift_bits;
+        addr &= ~mask;
 
         // try again if address is already in map
         auto it = gups_addr_to_update.find(addr);
